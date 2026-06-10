@@ -7,10 +7,11 @@ module.exports = {
   ],
   theme: {
     extend: {
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+      colors: {
+        'dark-medis': '#1B262C',    // Navy Gelap
+        'primary-medis': '#0F4C75', // Biru Utama
+        'secondary-medis': '#3282B8', // Biru Muda
+        'light-medis': '#BBE1FA',     // Biru Pucat Background
       },
     },
   },
