@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, FileText, LogOut, ShieldCheck, User, FolderHeart, AlertCircle, CheckCircle, Download, X, Activity, Cpu } from 'lucide-react';
+import { API_BASE_URL } from '@/config';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -89,8 +90,9 @@ export default function DashboardPage() {
     formData.append('nama_pasien', namaPasien.trim() || 'Anonim');
     formData.append('no_rm', noRm.trim() || '-');
 
+
     try {
-      const res = await fetch('http://localhost:5004/api/predict', {
+      const res = await fetch(`${API_BASE_URL}/api/predict`, {
         method: 'POST',
         body: formData,
       });
@@ -125,10 +127,11 @@ export default function DashboardPage() {
     if (!analysisResult) return;
     setDownloadingPdf(true);
 
+
     try {
       const defaultFilename = `Hasil_Analisis_${analysisResult.no_rm}_${analysisResult.nama_pasien.replace(/ /g, '_')}.pdf`;
 
-      const res = await fetch('http://localhost:5004/api/download-pdf', {
+      const res = await fetch(`${API_BASE_URL}/api/download-pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

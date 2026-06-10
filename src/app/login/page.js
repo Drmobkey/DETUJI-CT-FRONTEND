@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Lock, User, Eye, EyeOff, Stethoscope, ArrowRight, Activity } from 'lucide-react';
+import { API_BASE_URL } from '@/config';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -20,9 +21,10 @@ export default function LoginPage() {
         setError('');
         setLoading(true);
 
+
         try {
             // Menembak endpoint API Modul 1 yang sudah kita buat di Flask
-            const res = await fetch('http://localhost:5004/api/login', {
+            const res = await fetch(`${API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password }),
