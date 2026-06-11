@@ -441,9 +441,16 @@ export default function DashboardPage() {
                     {analysisResult.prediction.toUpperCase()}
                   </div>
                   <p className="text-[11px] text-slate-400 mt-2.5 max-w-xs leading-relaxed">
-                    {isTumor
-                      ? 'Terdeteksi anomali sel massa tidak wajar pada ginjal. Disarankan konfirmasi laboratorium lanjut.'
-                      : 'Struktur jaringan sel ginjal bersih dari indikasi massa neoplasma tumor.'}
+                    {isTumor ? (
+                      <>
+                        Terdeteksi anomali massa sel yang tidak wajar pada ginjal. Disarankan untuk melakukan konfirmasi laboratorium lebih lanjut.
+                        <span className="block mt-2 font-bold text-red-500 text-[10px]">
+                          *Catatan: Segera konsultasikan hasil analisis ini dengan dokter spesialis untuk pemeriksaan klinis lebih lanjut.
+                        </span>
+                      </>
+                    ) : (
+                      'Struktur jaringan sel ginjal bersih dari indikasi massa neoplasma tumor.'
+                    )}
                   </p>
                 </div>
 
