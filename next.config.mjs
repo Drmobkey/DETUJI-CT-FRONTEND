@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  output: 'standalone', // bawaan Dockerfile kamu
+  basePath: '/detuji',
+  assetPrefix: '/detuji',
 };
 
 export default nextConfig;
