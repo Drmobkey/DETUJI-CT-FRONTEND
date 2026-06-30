@@ -14,8 +14,8 @@ export default function DashboardPage() {
   const [namaPasien, setNamaPasien] = useState('');
 
   // 2. State File Gambar & Previews
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
 
   // 3. State Hasil Analisis AI Backend
   const [loading, setLoading] = useState(false);
@@ -40,33 +40,49 @@ export default function DashboardPage() {
   };
 
   // Handler untuk menghapus file yang dipilih
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
-    setImagePreview(null);
+  const handleRemoveFile = (indexToRemove) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== indexToRemove));
+    setImagePreviews(prev => prev.filter((_, i) => i !== indexToRemove));
+    setAnalysisResult(null);
+    setError('');
+  };
+
+  const handleClearAllFiles = () => {
+    setSelectedFiles([]);
+    setImagePreviews([]);
     setAnalysisResult(null);
     setError('');
   };
 
   // Handler saat user memilih file gambar dari komputer
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const allowedExtensions = ['png', 'jpg', 'jpeg', 'dcm'];
-      const fileExtension = file.name.split('.').pop().toLowerCase();
-
-      if (!allowedExtensions.includes(fileExtension)) {
-        setError(`Format berkas tidak diizinkan! Hanya menerima format: ${allowedExtensions.join(', ').toUpperCase()}`);
-        setSelectedFile(null);
-        setImagePreview(null);
-        setAnalysisResult(null);
-        e.target.value = ''; // Reset input agar bisa pilih ulang file yang sama jika diinginkan
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      if (files.length > 15) {
+        setError('Maksimal 15 file gambar yang dapat diproses sekaligus!');
+        e.target.value = '';
         return;
       }
+      
+      const allowedExtensions = ['png', 'jpg', 'jpeg', 'dcm'];
+      const validFiles = [];
+      const validPreviews = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExtension = file.name.split('.').pop().toLowerCase();
 
-      setSelectedFile(file);
-      // Membuat URL temporer agar gambar bisa dipratinjau langsung di UI Next.js
-      setImagePreview(URL.createObjectURL(file));
-      // Reset hasil analisis lama jika user mengganti gambar baru
+        if (!allowedExtensions.includes(fileExtension)) {
+            setError(`Format berkas tidak diizinkan untuk file ${file.name}! Hanya menerima format: ${allowedExtensions.join(', ').toUpperCase()}`);
+            e.target.value = '';
+            return;
+        }
+        validFiles.push(file);
+        validPreviews.push(URL.createObjectURL(file));
+      }
+
+      setSelectedFiles(validFiles);
+      setImagePreviews(validPreviews);
       setAnalysisResult(null);
       setError('');
     }
@@ -75,7 +91,7 @@ export default function DashboardPage() {
   // --- SUBMIT DATA KE BACKEND FLASK ---
   const handleAnalyse = async (e) => {
     e.preventDefault();
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       setError('Silakan pilih berkas gambar CT Scan terlebih dahulu!');
       return;
     }
@@ -86,7 +102,9 @@ export default function DashboardPage() {
 
     // 1. Membungkus data ke FormData
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    selectedFiles.forEach((file) => {
+       formData.append('files', file);
+    });
     formData.append('nama_pasien', namaPasien.trim() || 'Anonim');
     formData.append('no_rm', noRm.trim() || '-');
 
@@ -106,11 +124,12 @@ export default function DashboardPage() {
           analysis_id: finalData.analysis_id || `DETUJI-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
           nama_pasien: finalData.nama_pasien || namaPasien || 'Anonim',
           no_rm: finalData.no_rm || noRm || '-',
-          filename: finalData.saved_filename || finalData.filename || 'file_scan.png',
-          prediction: finalData.prediction || 'Normal',
+          prediction: finalData.overall_prediction || finalData.prediction || 'Normal',
           confidence: finalData.confidence !== undefined ? finalData.confidence : 100.0,
           timestamp: finalData.timestamp || new Date().toLocaleString(),
-          message: finalData.message
+          message: finalData.message,
+          summary_text: finalData.summary_text,
+          details: finalData.details || []
         });
       } else {
         setError(result.error || result.message || 'Gagal memproses gambar CT Scan.');
@@ -138,10 +157,11 @@ export default function DashboardPage() {
           analysis_id: analysisResult.analysis_id,
           nama_pasien: analysisResult.nama_pasien,
           no_rm: analysisResult.no_rm,
-          saved_filename: analysisResult.filename, // Memastikan key sesuai blueprint route PDF
           prediction: analysisResult.prediction,
           confidence: analysisResult.confidence,
-          timestamp: analysisResult.timestamp
+          timestamp: analysisResult.timestamp,
+          summary_text: analysisResult.summary_text,
+          details: analysisResult.details
         }),
       });
 
@@ -303,25 +323,36 @@ export default function DashboardPage() {
               </label>
               <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300/70 rounded-2xl bg-gradient-to-b from-slate-50/50 to-slate-50 hover:from-primary-medis/[0.02] hover:to-secondary-medis/[0.03] hover:border-primary-medis/30 cursor-pointer group transition-all duration-300 overflow-hidden relative">
 
-                {imagePreview ? (
-                  // Jika gambar sudah dipilih
-                  selectedFile?.name?.toLowerCase().endsWith('.dcm') ? (
-                    <div className="flex flex-col items-center justify-center p-6 text-center h-full w-full animate-fade-in">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-teal-100 text-teal-600 flex items-center justify-center mb-3 border border-teal-200/80 shadow-sm">
-                        <FileText className="w-7 h-7" />
-                      </div>
-                      <p className="text-sm font-bold text-dark-medis max-w-[90%] truncate">{selectedFile?.name}</p>
-                      <p className="text-[11px] text-slate-400 mt-1">Berkas Medis DICOM (Pratinjau visual tidak didukung oleh browser)</p>
-                      <p className="text-[10px] text-teal-600 bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-full mt-2.5 font-bold uppercase shadow-sm">
-                        Format DICOM Terdeteksi
-                      </p>
+                {imagePreviews.length > 0 ? (
+                  <div className="w-full h-full p-4 overflow-y-auto custom-scrollbar animate-fade-in relative z-10">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {selectedFiles.map((file, idx) => (
+                        <div key={idx} className="relative group bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm aspect-square flex flex-col items-center justify-center">
+                          {file.name.toLowerCase().endsWith('.dcm') ? (
+                            <div className="flex flex-col items-center justify-center h-full w-full p-2 text-center bg-slate-50">
+                              <FileText className="w-8 h-8 text-teal-500 mb-1" />
+                              <p className="text-[10px] font-bold text-dark-medis truncate w-full px-1">{file.name}</p>
+                              <p className="text-[8px] text-teal-600 bg-teal-50 px-1.5 py-0.5 rounded mt-1">DICOM</p>
+                            </div>
+                          ) : (
+                            <img src={imagePreviews[idx]} alt="Preview" className="w-full h-full object-cover" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              handleRemoveFile(idx);
+                            }}
+                            className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-600 text-white rounded-full p-1 transition-all z-20 opacity-0 group-hover:opacity-100"
+                            title="Hapus file"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
-                    // Pratinjau gambar standar
-                    <picture className="animate-fade-in">
-                      <img src={imagePreview} alt="Preview CT Scan" className="w-full h-full object-contain p-2" />
-                    </picture>
-                  )
+                  </div>
                 ) : (
                   // Jika belum ada gambar, tampilkan ikon upload petunjuk standar
                   <div className="flex flex-col items-center justify-center p-6 text-center">
@@ -332,18 +363,18 @@ export default function DashboardPage() {
                     <p className="text-[11px] text-slate-400 mt-1">Mendukung format PNG, JPG, JPEG, atau DICOM (.dcm)</p>
                   </div>
                 )}
-                {imagePreview && (
+                {imagePreviews.length > 0 && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
-                      handleRemoveFile();
+                      handleClearAllFiles();
                     }}
-                    className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-all z-20 shadow-md flex items-center justify-center border border-red-400 active:scale-90 hover:shadow-lg"
-                    title="Hapus file"
+                    className="absolute top-2 right-2 bg-slate-800 hover:bg-red-500 text-white rounded-lg px-2 py-1 transition-all z-30 shadow-md flex items-center justify-center text-[10px] font-bold"
+                    title="Hapus semua"
                   >
-                    <X className="w-4 h-4" />
+                    Hapus Semua
                   </button>
                 )}
 
@@ -370,7 +401,7 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                <input type="file" accept=".png,.jpg,.jpeg,.dcm" onChange={handleFileChange} className="hidden" />
+                <input type="file" multiple accept=".png,.jpg,.jpeg,.dcm" onChange={handleFileChange} className="hidden" />
               </label>
             </div>
 
@@ -385,7 +416,7 @@ export default function DashboardPage() {
             {/* Tombol trigger analisis AI */}
             <button
               type="submit"
-              disabled={loading || !selectedFile}
+              disabled={loading || selectedFiles.length === 0}
               className="w-full py-3.5 bg-gradient-to-r from-primary-medis to-secondary-medis hover:brightness-110 active:scale-[0.99] text-white rounded-xl font-bold text-sm transition-all duration-300 transform shadow-lg shadow-primary-medis/15 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
@@ -465,7 +496,7 @@ export default function DashboardPage() {
                       Tingkat Kepercayaan Rendah ({analysisResult.confidence.toString().replace('.', ',')}%)
                     </div>
                     <p className="text-[11px] text-amber-700/80 max-w-xs leading-relaxed">
-                      {analysisResult.message || "Model AI ragu-ragu. Struktur anatomi gambar tidak dikenali sebagai CT Scan Ginjal yang valid."}
+                      {analysisResult.summary_text || analysisResult.message || "Model AI ragu-ragu. Struktur anatomi gambar tidak dikenali sebagai CT Scan Ginjal yang valid."}
                     </p>
                   </div>
                 )}
