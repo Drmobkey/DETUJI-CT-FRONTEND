@@ -537,6 +537,35 @@ export default function DashboardPage() {
                   ))}
                 </div>
 
+                {/* Rincian Hasil Analisis Per-File */}
+                {analysisResult.details && analysisResult.details.length > 0 && (
+                  <div className="pt-2">
+                    <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-2">Rincian Analisis Per Citra</span>
+                    <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-100 divide-y divide-slate-100">
+                      {analysisResult.details.map((detail, i) => {
+                        const detailIsTumor = detail.prediction?.toLowerCase().includes('tumor');
+                        return (
+                          <div key={i} className="flex items-center justify-between px-3 py-2 hover:bg-slate-50/80 transition-colors">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[10px] font-mono text-slate-400 shrink-0 w-5">{i + 1}.</span>
+                              <span className="text-xs text-dark-medis truncate">{detail.original_filename || detail.saved_filename}</span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${detailIsTumor
+                                ? 'bg-red-50 text-red-600 border border-red-200/80'
+                                : 'bg-emerald-50 text-emerald-600 border border-emerald-200/80'
+                              }`}>
+                                {detail.prediction}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono">{detail.confidence?.toString().replace('.', ',')}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
 
